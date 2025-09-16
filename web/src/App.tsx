@@ -22,7 +22,6 @@ const App: React.FC = () => {
   const [message, setMessage] = useState<string>('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
-  // Backend URL - using Vite environment variable
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -63,7 +62,6 @@ const App: React.FC = () => {
     setBolNumber('');
     setWeight('');
 
-    // Show preview of uploaded image
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result) {
@@ -123,7 +121,6 @@ const App: React.FC = () => {
             Drop an image of a Bill of Lading to extract BOL number and weight information
           </p>
 
-          {/* File Drop Zone */}
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center mb-6 transition-all duration-200 ${
               dragOver 
@@ -168,7 +165,6 @@ const App: React.FC = () => {
             )}
           </div>
 
-          {/* Image Preview */}
           {uploadedImage && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-2">Uploaded Image:</h3>
@@ -182,7 +178,6 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Status Message */}
           {message && (
             <div className={`p-4 rounded-lg mb-6 ${
               message.includes('Error') || message.includes('Failed')
@@ -195,7 +190,6 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Results Form */}
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -233,7 +227,6 @@ const App: React.FC = () => {
             )}
           </div>
 
-          {/* Instructions */}
           <div className="mt-8 p-4 bg-gray-50 rounded-lg">
             <h3 className="font-semibold text-gray-900 mb-2">Tips for best results:</h3>
             <ul className="text-sm text-gray-600 space-y-1">
