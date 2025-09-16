@@ -4,22 +4,24 @@ const Tesseract = require('tesseract.js');
 const OpenAI = require('openai');
 const cors = require('cors');
 const fs = require('fs');
-const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Initialize OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://main.d1fhfjbc8xwec5.amplifyapp.com',
+    'https://laynethompson.org',
+    'https://www.laynethompson.org'
+  ]
+}));
 app.use(express.json());
 
-// Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'uploads/';
@@ -43,14 +45,11 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 10 * 1024 * 1024 // NOTE: 10MB limit
   }
 });
 
-// OCR and GPT processing function
 async function processImageForBOLData(imagePath, ocrText) {
-  try {
-    // Read image as base64 for ChatGPT Vision API
     const imageBuffer = fs.readFileSync(imagePath);
     const base64Image = imageBuffer.toString('base64');
 
@@ -104,17 +103,13 @@ async function processImageForBOLData(imagePath, ocrText) {
     const result = response.choices[0].message.content;
     
     try {
-      // Strip markdown code blocks if present
       const cleanResult = result.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       console.log('cleaned result:', cleanResult);
       
-      // Try to parse as JSON
       return JSON.parse(cleanResult);
-    } catch (parseError) {
-      // If JSON parsing fails, try to extract manually from the result
+    } catch (parseError) {//to catch parsing edge cases
       console.log('JSON parsing failed, attempting manual extraction');
       
-      // Try to extract from the ChatGPT response using regex
       const bolMatch = result.match(/"bolNumber":\s*"([^"]+)"/);
       const weightMatch = result.match(/"weight":\s*"([^"]+)"/);
       const weightTypeMatch = result.match(/"weightType":\s*"([^"]+)"/);
@@ -125,14 +120,8 @@ async function processImageForBOLData(imagePath, ocrText) {
         weightType: weightTypeMatch ? weightTypeMatch[1] : null
       };
     }
-
-  } catch (error) {
-    console.error('Error processing with ChatGPT:', error);
-    throw error;
-  }
 }
 
-// Main endpoint for processing images
 app.post('/api/process-image', upload.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided' });
@@ -143,24 +132,20 @@ app.post('/api/process-image', upload.single('image'), async (req, res) => {
   try {
     console.log('Starting OCR processing...');
     
-    // Perform OCR using Tesseract
-    const { data: { text } } = await Tesseract.recognize(imagePath, 'eng', {
+    const { data: { text } } = await Tesseract.recognize(imagePath, 'eng', {//TESSERACT
       logger: m => console.log(m)
     });
     
     console.log('OCR completed. Tesseract Text length:', text.length);
     console.log('OCR completed. Tesseract Text:', text);
     
-    // Process with ChatGPT
     console.log('Processing with ChatGPT...');
     const extractedData = await processImageForBOLData(imagePath, text);
     
     console.log('Extracted data:', extractedData);
     
-    // Clean up uploaded file
     fs.unlinkSync(imagePath);
     
-    // Return the extracted data
     res.json({
       success: true,
       data: {
@@ -174,7 +159,6 @@ app.post('/api/process-image', upload.single('image'), async (req, res) => {
   } catch (error) {
     console.error('Error processing image:', error);
     
-    // Clean up uploaded file in case of error
     if (fs.existsSync(imagePath)) {
       fs.unlinkSync(imagePath);
     }
@@ -186,12 +170,10 @@ app.post('/api/process-image', upload.single('image'), async (req, res) => {
   }
 });
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running' });
 });
 
-// Error handling middleware
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
